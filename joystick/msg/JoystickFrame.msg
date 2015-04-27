@@ -1,0 +1,3 @@
+bool hand_available
+geometry_msgs/Point palm_position
+geometry_msgs/Vector3 ypr
