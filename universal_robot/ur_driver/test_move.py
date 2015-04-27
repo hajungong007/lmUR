@@ -9,7 +9,7 @@ from trajectory_msgs.msg import *
 from sensor_msgs.msg import JointState
 from ur_msgs.msg import *
 from leap_motion.msg import LeapFrame
-from threading import Thread
+from joystick.msg import JoystickFrame
 
 JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
                'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -18,7 +18,6 @@ PI = 3.14159265359
 d1 = 0.017453293 #1 degree in rad
 
 #Robot joints position
-global J1,J2,J3,J4,J5,J6
 J1 = 0
 J2 = 0
 J3 = 0
@@ -27,14 +26,12 @@ J5 = 0
 J6 = 0
 
 #Hand palm position and status
-global palmY, palmX, palmZ, hands
 palmX = 0
 palmY = 0
 palmZ = 0
 hands = False
 
 #last move sended to the robot
-global last_move
 last_move = "null"
 
 client = None
@@ -74,6 +71,16 @@ def callback_ur(data):
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback_lm(data):
+    global palmY, palmX, palmZ, hands
+    palmX = data.palm_position.x
+    palmY = data.palm_position.y
+    palmZ = data.palm_position.z
+    hands = data.hand_available
+    #rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palmpos.x,data.palmpos.y,data.palmpos.z))
+
+#Method that compliment the subscription to a topic, each time that
+# something is published into the topic this callback method is called
+def callback_jy(data):
     global palmY, palmX, palmZ, hands
     palmX = data.palm_position.x
     palmY = data.palm_position.y
@@ -250,6 +257,7 @@ def main():
 
         rospy.Subscriber("joint_states", JointState, callback_ur)
         rospy.Subscriber("leapmotion/data", LeapFrame, callback_lm)
+        rospy.Subscriber("joystick/data",JoystickFrame, callback_jy)
 
         while(True):
 			send_movement()
