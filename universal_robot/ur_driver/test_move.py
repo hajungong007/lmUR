@@ -57,8 +57,8 @@ def move(position):
     g.trajectory.joint_names = JOINT_NAMES
     g.trajectory.points = [JointTrajectoryPoint(positions=position, velocities=[0]*6, time_from_start=rospy.Duration(20.0))]
     client.send_goal(g)
-   
-#Method that compliment the subscription to a topic, each time that 
+
+#Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback_ur(data):
 	#get each wrist position and change it from rad to degrees
@@ -69,9 +69,9 @@ def callback_ur(data):
 	J4 = data.position[3]
 	J5 = data.position[4]
 	J6 = data.position[5]
-	#rospy.loginfo("\nShoulder pan %s\nShoulder lift %s\nElbow %s\nWrist1 %s\nWrist2 %s\nwrist3 %s\n" % (J1,J2,J3,J4,J5,J6)) 
+	#rospy.loginfo("\nShoulder pan %s\nShoulder lift %s\nElbow %s\nWrist1 %s\nWrist2 %s\nwrist3 %s\n" % (J1,J2,J3,J4,J5,J6))
 
-#Method that compliment the subscription to a topic, each time that 
+#Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback_lm(data):
     global palmY, palmX, palmZ, hands
@@ -82,162 +82,162 @@ def callback_lm(data):
     #rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palmpos.x,data.palmpos.y,data.palmpos.z))
 
 #Regarding the position of the user hands send different movements to
-# the robot, making it moves according to the hand 
+# the robot, making it moves according to the hand
 def send_movement():
 	global last_move
 	global J1,J2,J3,J4,J5,J6
 	global p
-	
+
 	if hands:
-		
+
 		if palmX > 50 and palmY > 200 and palmZ > 30:
 			#if last_move != "+x+y+z":
 				#client.cancel_goal()
 			last_move = "+x+y+z"
-			move([J1-d1,J2-d1,J3-d1,J4,J5,J6])
-		
+			move([J1-d1,J2+d1,J3-d1,J4,J5,J6])
+
 		elif palmX < -50 and palmY > 200 and palmZ > 30:
 			#if last_move != "-x+y+z":
 				#client.cancel_goal()
 			last_move = "-x+y+z"
-			move([J1+d1,J2-d1,J3-d1,J4,J5,J6])
-		
+			move([J1+d1,J2+d1,J3-d1,J4,J5,J6])
+
 		elif palmX < -50 and palmY < 130 and palmZ > 30:
 			#if last_move != "-x-y+z":
 				#client.cancel_goal()
 			last_move = "-x-y+z"
-			move([J1+d1,J2+d1,J3-d1,J4,J5,J6])
-		
+			move([J1+d1,J2-d1,J3-d1,J4,J5,J6])
+
 		elif palmX < -50 and palmY < 130 and palmZ < -30:
 			#if last_move != "-x-y-z":
 				#client.cancel_goal()
 			last_move = "-x-y-z"
 			move([J1+d1,J2-d1,J3-d1,J4,J5,J6])
-		
+
 		elif palmX < -50 and palmY > 200 and palmZ < -30:
 			#if last_move != "-x+y-z":
 				#client.cancel_goal()
 			last_move = "-x+y-z"
-			move([J1+d1,J2-d1,J3+d1,J4,J5,J6])
-		
+			move([J1+d1,J2+d1,J3+d1,J4,J5,J6])
+
 		elif palmX > 50 and palmY > 200 and palmZ < -30:
 			#if last_move != "+x+y-z":
 				#client.cancel_goal()
 			last_move = "+x+y-z"
-			move([J1-d1,J2-d1,J3+d1,J4,J5,J6])
-		
+			move([J1-d1,J2+d1,J3+d1,J4,J5,J6])
+
 		elif palmX > 50 and palmY > 200:
 			#if last_move != "+x+y":
 				#client.cancel_goal()
 			last_move = "+x+y"
-			move([J1-d1,J2-d1,J3,J4,J5,J6])
-				
+			move([J1-d1,J2+d1,J3,J4,J5,J6])
+
 		elif palmX < -50 and palmY < 130:
 			#if last_move != "-x-y":
 				#client.cancel_goal()
 			last_move = "-x-y"
-			move([J1+d1,J2+d1,J3,J4,J5,J6])
-		
-		elif palmX < -50 and palmY > 200:		
+			move([J1+d1,J2-d1,J3,J4,J5,J6])
+
+		elif palmX < -50 and palmY > 200:
 			#if last_move != "-x+y":
 				#client.cancel_goal()
 			last_move = "-x+y"
-			move([J1+d1,J2-d1,J3,J4,J5,J6])
-		
+			move([J1+d1,J2+d1,J3,J4,J5,J6])
+
 		elif palmX > 50 and palmY < 130:
 			#if last_move != "+x-y":
 				#client.cancel_goal()
 			last_move = "+x-y"
-			move([J1-d1,J2+d1,J3,J4,J5,J6])
-		
+			move([J1-d1,J2-d1,J3,J4,J5,J6])
+
 		elif palmX > 50 and palmZ > 30:
 			#if last_move != "+x+z":
 				#client.cancel_goal()
 			last_move = "+x+z"
-			move([J1-d1,J2,J3-d1,J4,J5,J6])
-		
+			move([J1-d1,J2,J3-d1*2,J4,J5,J6])
+
 		elif palmX > 50 and palmZ < -30:
 			#if last_move != "+x-z":
 			#client.cancel_goal()
 			last_move = "+x-z"
-			move([J1+d1,J2,J2-d1,J4,J5,J6])
-		
+			move([J1-d1,J2,J3+d1*2,J4,J5,J6])
+
 		elif palmX < -50 and palmZ > 30:
 			#if last_move != "-x+z":
 				#client.cancel_goal()
 			last_move = "-x+z"
-			move([J1+d1,J2,J3-d1,J4,J5,J6])
-		
+			move([J1+d1,J2,J3-d1*2,J4,J5,J6])
+
 		elif palmX < -50 and palmZ < -30:
 			#if last_move != "-x-z":
 				#client.cancel_goal()
 			last_move = "-x-z"
-			move([J1+d1,J2,J3+d1,J4,J5,J6])
-		
+			move([J1+d1,J2,J3+d1*2,J4,J5,J6])
+
 		elif palmY > 200 and palmZ > 30:
 			#if last_move != "+y+z":
 				#client.cancel_goal()
 			last_move = "+y-z"
-			move([J1,J2-d1,J3-d1,J4,J5,J6])
-		
+			move([J1,J2+d1,J3-d1*2,J4,J5,J6])
+
 		elif palmY > 200 and palmZ < -30:
 			#if last_move != "+y-z":
 				#client.cancel_goal()
 			last_move = "+y-z"
-			move([J1,J2-d1,J2+d1,J4,J5,J6])
-		
+			move([J1,J2+d1,J2+d1*2,J4,J5,J6])
+
 		elif palmY < 130 and palmZ < -30:
 			#if last_move != "-y-z":
 				#client.cancel_goal()
 			last_move = "-y-z"
-			move([J1,J2+d1,J3-d1,J4,J5,J6])
-		
+			move([J1,J2-d1,J3+d1*2,J4,J5,J6])
+
 		elif palmY < 130 and palmZ > 30:
 			#if last_move != "-y+z":
 				#client.cancel_goal()
 			last_move = "-y+z"
-			move([J1,J2+d1,J3-d1,J4,J5,J6])
-		
+			move([J1,J2-d1,J3-d1*2,J4,J5,J6])
+
 		elif palmY > 200:
 			#if last_move != "up":
 				#client.cancel_goal()
 			last_move = "up"
-			move([J1,J2-d1,J3,J4,J5,J6])			
-		
+			move([J1,J2+d1,J3,J4,J5,J6])
+
 		elif palmY < 130:
 			#if last_move != "down":
 				#client.cancel_goal()
 			last_move = "down"
-			move([J1,J2+d1,J3,J4,J5,J6])
-		
+			move([J1,J2-d1,J3,J4,J5,J6])
+
 		elif palmX > 50:
 			#if last_move != "right":
 				#client.cancel_goal()
 			last_move = "right"
 			move([J1-d1,J2,J3,J4,J5,J6])
-		
+
 		elif palmX < -50:
 			#if last_move != "left":
 				#client.cancel_goal()
 			last_move = "left"
 			move([J1+d1,J2,J3,J4,J5,J6])
-		
+
 		elif palmZ > 30:
 			#if last_move != "back":
 				#client.cancel_goal()
 			last_move = "back"
-			move([J1,J2,J3-d1,J4,J5,J6])
-		
-		elif palmZ < -30:		
+			move([J1,J2,J3-d1*2,J4,J5,J6])
+
+		elif palmZ < -30:
 			#if last_move != "front":
 				#client.cancel_goal()
 			last_move = "front"
-			move([J1,J2,J3+d1,J4,J5,J6])
+			move([J1,J2,J3+d1*2,J4,J5,J6])
 	else:
 		if last_move != "stop":
 			last_move = "stop"
 			client.cancel_goal()
-			rospy.loginfo("stop")	
+			rospy.loginfo("stop")
 
 def main():
     global client
@@ -247,15 +247,15 @@ def main():
         print "Waiting for server..."
         client.wait_for_server()
         print "Connected to server"
-        
+
         rospy.Subscriber("joint_states", JointState, callback_ur)
         rospy.Subscriber("leapmotion/data", LeapFrame, callback_lm)
-        
+
         while(True):
 			send_movement()
 			#Sleep 0.08 which is almost 120Hz
 			time.sleep(0.08)
-			
+
 
     except KeyboardInterrupt:
         client.cancel_goal()
