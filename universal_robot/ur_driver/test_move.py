@@ -221,13 +221,13 @@ def send_movement():
 			#if last_move != "right":
 				#client.cancel_goal()
 			last_move = "right"
-			move([J1-d1,J2,J3,J4,J5,J6])
+			move([J1-d1*3,J2,J3,J4,J5,J6])
 
 		elif palmX < -50:
 			#if last_move != "left":
 				#client.cancel_goal()
 			last_move = "left"
-			move([J1+d1,J2,J3,J4,J5,J6])
+			move([J1+d1*3,J2,J3,J4,J5,J6])
 
 		elif palmZ > 30:
 			#if last_move != "back":
