@@ -66,7 +66,7 @@ MULT_analog = 1000000.0
 MULT_analog_robotstate = 0.1
 
 #Max Velocity accepted by ur_driver
-MAX_VELOCITY = 0.5
+MAX_VELOCITY = 10.0
 #Using a very high value in order to not limit execution of trajectories being sent from MoveIt!
 
 #Bounds for SetPayload service
@@ -150,7 +150,6 @@ class URConnection(object):
         self.__thread = threading.Thread(name="URConnection", target=self.__run)
         self.__thread.daemon = True
         self.__thread.start()
-        
 
     def send_program(self):
         global prevent_programming
@@ -646,7 +645,6 @@ class URServiceProvider(object):
 
 class URTrajectoryFollower(object):
     RATE = 0.02
-    joints = []
     def __init__(self, robot, goal_time_tolerance=None):
         self.goal_time_tolerance = goal_time_tolerance or rospy.Duration(0.0)
         self.joint_goal_tolerances = [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
@@ -680,7 +678,6 @@ class URTrajectoryFollower(object):
     # Sets the trajectory to remain stationary at the current position
     # of the robot.
     def init_traj_from_robot(self):
-        global state
         if not self.robot: raise Exception("No robot connected")
         # Busy wait (avoids another mutex)
         state = self.robot.get_joint_states()
@@ -782,7 +779,6 @@ class URTrajectoryFollower(object):
 
     last_now = time.time()
     def _update(self, event):
-        global state
         if self.robot and self.traj:
             now = time.time()
             if (now - self.traj_t0) <= self.traj.points[-1].time_from_start.to_sec():
@@ -799,7 +795,7 @@ class URTrajectoryFollower(object):
                 # This should solve an issue where the robot does not reach the final
                 # position and errors out due to not reaching the goal point.
                 last_point = self.traj.points[-1]
-                joints = self.robot.get_joint_states()
+                state = self.robot.get_joint_states()
                 position_in_tol = within_tolerance(state.position, last_point.positions, self.joint_goal_tolerances)
                 # Performing this check to try and catch our error condition.  We will always
                 # send the last point just in case.
@@ -808,7 +804,7 @@ class URTrajectoryFollower(object):
                     rospy.logwarn("Current trajectory time: %s, last point time: %s" % \
                                 (now - self.traj_t0, self.traj.points[-1].time_from_start.to_sec()))
                     rospy.logwarn("Desired: %s\nactual: %s\nvelocity: %s" % \
-                                          (last_point.positions, joints.position, joints.velocity))
+                                          (last_point.positions, state.position, state.velocity))
                 setpoint = sample_traj(self.traj, self.traj.points[-1].time_from_start.to_sec())
 
                 try:
@@ -829,12 +825,10 @@ class URTrajectoryFollower(object):
                         self.goal_handle = None
                     #elif now - (self.traj_t0 + last_point.time_from_start.to_sec()) > self.goal_time_tolerance.to_sec():
                     #    # Took too long to reach the goal.  Aborting
-                    #    rospy.logwarn("Took too
-                    #long to reach the goal.\nDesired: %s\nactual: %s\nvelocity: %s" % \
+                    #    rospy.logwarn("Took too long to reach the goal.\nDesired: %s\nactual: %s\nvelocity: %s" % \
                     #                      (last_point.positions, state.position, state.velocity))
                     #    self.goal_handle.set_aborted(text="Took too long to reach the goal")
                     #    self.goal_handle = None
-
 
 
 # joint_names: list of joints

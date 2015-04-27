@@ -2,7 +2,8 @@
 import rospy
 import os, sys, inspect
 import Leap
-from begginer_tutorials.msg import LeapFrame
+from leap_motion.msg import LeapFrame
+
 class SampleListener(Leap.Listener):
 
     def on_init(self, controller):
@@ -66,7 +67,7 @@ def main():
     try:
         raw_input("\n")
     except KeyboardInterrupt:
-        pass
+		rospy.signal_shutdown("KeyboardInterrupt")
     finally:
         # Remove the sample listener when done
     	controller.remove_listener(listener)
