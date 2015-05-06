@@ -89,8 +89,8 @@ def callback_jy(data):
     palmX = data.palm_position.x
     palmY = data.palm_position.y
     palmZ = data.palm_position.z
-    hands = True
-    grip = data.hand_available
+    hands = data.hand_available
+    grip = data.grab_action
     #rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palmpos.x,data.palmpos.y,data.palmpos.z))
 
 #Regarding the position of the user hands send different movements to
