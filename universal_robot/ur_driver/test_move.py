@@ -10,6 +10,8 @@ from sensor_msgs.msg import JointState
 from ur_msgs.msg import *
 from leap_motion.msg import LeapFrame
 from joystick.msg import JoystickFrame
+from ur_driver.io_interface import *
+
 
 JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
                'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -30,9 +32,11 @@ palmX = 0
 palmY = 0
 palmZ = 0
 hands = False
+grip = False
 
 #last move sended to the robot
 last_move = "null"
+gripped = False
 
 client = None
 
@@ -81,11 +85,12 @@ def callback_lm(data):
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback_jy(data):
-    global palmY, palmX, palmZ, hands
+    global palmY, palmX, palmZ, hands, grip
     palmX = data.palm_position.x
     palmY = data.palm_position.y
     palmZ = data.palm_position.z
-    hands = data.hand_available
+    hands = True
+    grip = data.hand_available
     #rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palmpos.x,data.palmpos.y,data.palmpos.z))
 
 #Regarding the position of the user hands send different movements to
@@ -93,81 +98,105 @@ def callback_jy(data):
 def send_movement():
 	global last_move
 	global J1,J2,J3,J4,J5,J6
-	global p
+	global grip,gripped
 
 	if hands:
-
+		
+		if palmX > 70:
+			x = -3
+		elif palmX < -70:
+			x = 3
+		else:
+			x = 0
+			
+		if palmY > 220:
+			y = 1
+		elif palmY < 110:
+			y = -1
+		else:
+			y = 0
+			
+		if palmZ > 50:
+			z = -2
+		elif palmZ < -50:
+			z = 2
+		else:
+			z = 0
+			
+		move([J1+d1*x,J2+d1*y,J3+d1*z,J4,J5,J6])
+		
+		"""
 		if palmX > 50 and palmY > 200 and palmZ > 30:
 			#if last_move != "+x+y+z":
 				#client.cancel_goal()
 			last_move = "+x+y+z"
-			move([J1-d1,J2+d1,J3-d1,J4,J5,J6])
+			move([J1-d1*3,J2+d1,J3-d1*2,J4,J5,J6])
 
 		elif palmX < -50 and palmY > 200 and palmZ > 30:
 			#if last_move != "-x+y+z":
 				#client.cancel_goal()
 			last_move = "-x+y+z"
-			move([J1+d1,J2+d1,J3-d1,J4,J5,J6])
+			move([J1+d1*3,J2+d1,J3-d1*2,J4,J5,J6])
 
 		elif palmX < -50 and palmY < 130 and palmZ > 30:
 			#if last_move != "-x-y+z":
 				#client.cancel_goal()
 			last_move = "-x-y+z"
-			move([J1+d1,J2-d1,J3-d1,J4,J5,J6])
+			move([J1+d1*3,J2-d1,J3-d1*2,J4,J5,J6])
 
 		elif palmX < -50 and palmY < 130 and palmZ < -30:
 			#if last_move != "-x-y-z":
 				#client.cancel_goal()
 			last_move = "-x-y-z"
-			move([J1+d1,J2-d1,J3-d1,J4,J5,J6])
+			move([J1+d1*3,J2-d1,J3-d1*2,J4,J5,J6])
 
 		elif palmX < -50 and palmY > 200 and palmZ < -30:
 			#if last_move != "-x+y-z":
 				#client.cancel_goal()
 			last_move = "-x+y-z"
-			move([J1+d1,J2+d1,J3+d1,J4,J5,J6])
+			move([J1+d1*3,J2+d1,J3+d1*2,J4,J5,J6])
 
 		elif palmX > 50 and palmY > 200 and palmZ < -30:
 			#if last_move != "+x+y-z":
 				#client.cancel_goal()
 			last_move = "+x+y-z"
-			move([J1-d1,J2+d1,J3+d1,J4,J5,J6])
+			move([J1-d1*3,J2+d1,J3+d1*2,J4,J5,J6])
 
 		elif palmX > 50 and palmY > 200:
 			#if last_move != "+x+y":
 				#client.cancel_goal()
 			last_move = "+x+y"
-			move([J1-d1,J2+d1,J3,J4,J5,J6])
+			move([J1-d1*3,J2+d1,J3,J4,J5,J6])
 
 		elif palmX < -50 and palmY < 130:
 			#if last_move != "-x-y":
 				#client.cancel_goal()
 			last_move = "-x-y"
-			move([J1+d1,J2-d1,J3,J4,J5,J6])
+			move([J1+d1*3,J2-d1,J3,J4,J5,J6])
 
 		elif palmX < -50 and palmY > 200:
 			#if last_move != "-x+y":
 				#client.cancel_goal()
 			last_move = "-x+y"
-			move([J1+d1,J2+d1,J3,J4,J5,J6])
+			move([J1+d1*3,J2+d1,J3,J4,J5,J6])
 
 		elif palmX > 50 and palmY < 130:
 			#if last_move != "+x-y":
 				#client.cancel_goal()
 			last_move = "+x-y"
-			move([J1-d1,J2-d1,J3,J4,J5,J6])
+			move([J1-d1*3,J2-d1,J3,J4,J5,J6])
 
 		elif palmX > 50 and palmZ > 30:
 			#if last_move != "+x+z":
 				#client.cancel_goal()
 			last_move = "+x+z"
-			move([J1-d1,J2,J3-d1*2,J4,J5,J6])
+			move([J1-d1*3,J2,J3-d1*2,J4,J5,J6])
 
 		elif palmX > 50 and palmZ < -30:
 			#if last_move != "+x-z":
 			#client.cancel_goal()
 			last_move = "+x-z"
-			move([J1-d1,J2,J3+d1*2,J4,J5,J6])
+			move([J1-d1*3,J2,J3+d1*2,J4,J5,J6])
 
 		elif palmX < -50 and palmZ > 30:
 			#if last_move != "-x+z":
@@ -184,14 +213,14 @@ def send_movement():
 		elif palmY > 200 and palmZ > 30:
 			#if last_move != "+y+z":
 				#client.cancel_goal()
-			last_move = "+y-z"
+			last_move = "+y+z"
 			move([J1,J2+d1,J3-d1*2,J4,J5,J6])
 
 		elif palmY > 200 and palmZ < -30:
 			#if last_move != "+y-z":
 				#client.cancel_goal()
 			last_move = "+y-z"
-			move([J1,J2+d1,J2+d1*2,J4,J5,J6])
+			move([J1,J2+d1,J3+d1*2,J4,J5,J6])
 
 		elif palmY < 130 and palmZ < -30:
 			#if last_move != "-y-z":
@@ -240,17 +269,22 @@ def send_movement():
 				#client.cancel_goal()
 			last_move = "front"
 			move([J1,J2,J3+d1*2,J4,J5,J6])
-	else:
-		if last_move != "stop":
-			last_move = "stop"
-			client.cancel_goal()
-			rospy.loginfo("stop")
-
+		"""
+	elif last_move != "stop":
+		last_move = "stop"
+		client.cancel_goal()
+		rospy.loginfo("stop")
+		
+	if grip :
+		gripped = not gripped
+		set_digital_out(8,gripped)
+		
 def main():
     global client
     try:
         rospy.init_node("test_move", anonymous=True, disable_signals=True)
         client = actionlib.SimpleActionClient('follow_joint_trajectory', FollowJointTrajectoryAction)
+
         print "Waiting for server..."
         client.wait_for_server()
         print "Connected to server"
@@ -259,10 +293,14 @@ def main():
         rospy.Subscriber("leapmotion/data", LeapFrame, callback_lm)
         rospy.Subscriber("joystick/data",JoystickFrame, callback_jy)
 
+        set_states()
+        set_tool_voltage(24)
+
         while(True):
 			send_movement()
 			#Sleep 0.08 which is almost 120Hz
 			time.sleep(0.08)
+
 
 
     except KeyboardInterrupt:
