@@ -139,6 +139,7 @@ def send_movement():
 		set_digital_out(8,gripped)
 	
 def check_input():
+	global lm, jy
 	try:
 		inp = raw_input()
 		a = int(inp)
