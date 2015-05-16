@@ -32,6 +32,9 @@ J6 = 0
 palmX = 0
 palmY = 0
 palmZ = 0
+palmYaw = 0
+palmPitch = 0
+palmRoll = 0
 hands = False
 grip = False
 
@@ -79,23 +82,29 @@ def callback_ur(data):
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback_lm(data):
-	global palmY, palmX, palmZ, hands
+	global palmY, palmX, palmZ, palmYaw, palmPitch, palmRoll, hands
 	palmX = data.palm_position.x
 	palmY = data.palm_position.y
 	palmZ = data.palm_position.z
+	palmYaw = data.ypr.x
+	palmPitch = data.ypr.y
+	palmRoll = data.ypr.z
 	hands = data.hand_available
-	#rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palmpos.x,data.palmpos.y,data.palmpos.z))
+	rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palm_position.x,data.palm_position.y,data.palm_position.z))
 
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback_jy(data):
-	global palmY, palmX, palmZ, hands, grip
+	global palmY, palmX, palmZ, palmYaw, palmPitch, palmRoll, hands, grip
 	palmX = data.palm_position.x
 	palmY = data.palm_position.y
 	palmZ = data.palm_position.z
+	palmYaw = data.ypr.x
+	palmPitch = data.ypr.y
+	palmRoll = data.ypr.z
 	hands = data.hand_available
 	grip = data.grab_action
-	#rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palmpos.x,data.palmpos.y,data.palmpos.z))
+	rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palm_position.x,data.palm_position.y,data.palm_position.z))
 
 #Regarding the position of the user hands send different movements to
 # the robot, making it moves according to the hand
@@ -112,32 +121,57 @@ def send_movement():
 			x = 0.1
 		else:
 			x = 0.0
-			
+
 		if palmY > 220:
-			y = 0.1
-		elif palmY < 110:
-			y = -0.1
-		else:
-			y = 0
-			
-		if palmZ > 50:
-			z = -0.1
-		elif palmZ < -50:
 			z = 0.1
+		elif palmY < 110:
+			z = -0.1
 		else:
 			z = 0
-			
+
+		if palmZ > 50:
+			y = -0.1
+		elif palmZ < -50:
+			y = 0.1
+		else:
+			y = 0
+
+		if palmRoll > 50:
+			rx = 0.1
+		elif palmRoll < 50:
+			rx = -0.1
+		else:
+			rx = 0
+
+		if palmPitch > 50:
+			ry = 0.1
+		elif palmPitch < 50:
+			ry = -0.1
+		else:
+			ry = 0
+
+		if palmYaw > 50:
+			rz = 0.1
+		elif palmYaw < 50:
+			rz = -0.1
+		else:
+			rz = 0
+
+		rx = palmRoll*0.5
+		ry = palmPitch *0.5
+		rz = palmYaw
+
 		#move([J1+d1*x,J2+d1*y,J3+d1*z,J4,J5,J6])
-		move([x,y,z,0,0,0])
-		
+		move([x,y,z,rx,ry,rz])
+
 	elif last_move != "stop":
 		last_move = "stop"
 		client.cancel_goal()
-		
+
 	if grip :
 		gripped = not gripped
 		set_digital_out(8,gripped)
-	
+
 def check_input():
 	global lm, jy
 	try:
@@ -160,12 +194,12 @@ def check_input():
 	except ValueError:
 		print "[EXCEPTION] Introduce a correct number"
 		return False
-	
+
 def select_hardware():
 	global lm,jy
 	while(True):
 		check_input()
-		
+
 def main():
 	global client,lm,jy
 	try:
@@ -181,12 +215,14 @@ def main():
 		print "Press 1 if you want to use LeapMotion"
 		print "Press 2 if you want to use a Joystick "
 		print "You can change the input device whenever you want"
-		
-		lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback_lm)
+
+
 		jy = rospy.Subscriber("joystick/data",JoystickFrame, callback_jy)
-		lm.unregister()
+		lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback_lm)
+
 		jy.unregister()
-		
+		lm.unregister()
+
 		check = False
 		while(not check_input):
 			check = check_input
@@ -194,13 +230,13 @@ def main():
 		t = threading.Thread(target=select_hardware, args = ())
 		t.daemon = True
 		t.start()
-		
+
 		#move([-0.57,-0.39,-0.43,1.35,0.9,-1])
 		#time.sleep(0.08)
 		while(True):
 			send_movement()
 			time.sleep (0.08) #which is almost 120Hz
-		
+
 
 
 
