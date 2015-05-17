@@ -157,11 +157,6 @@ def send_movement():
 		else:
 			rz = 0
 
-		rx = palmRoll*0.5
-		ry = palmPitch *0.5
-		rz = palmYaw
-
-		#move([J1+d1*x,J2+d1*y,J3+d1*z,J4,J5,J6])
 		move([x,y,z,rx,ry,rz])
 
 	elif last_move != "stop":
