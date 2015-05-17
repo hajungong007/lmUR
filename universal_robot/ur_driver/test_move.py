@@ -138,21 +138,21 @@ def send_movement():
 
 		if palmRoll > 50:
 			rx = 0.1
-		elif palmRoll < 50:
+		elif palmRoll < -50:
 			rx = -0.1
 		else:
 			rx = 0
 
 		if palmPitch > 50:
 			ry = 0.1
-		elif palmPitch < 50:
+		elif palmPitch < -50:
 			ry = -0.1
 		else:
 			ry = 0
 
 		if palmYaw > 50:
 			rz = 0.1
-		elif palmYaw < 50:
+		elif palmYaw < -50:
 			rz = -0.1
 		else:
 			rz = 0
