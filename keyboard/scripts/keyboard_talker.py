@@ -4,97 +4,152 @@ import rospy
 import sys, threading
 import select
 import termios, fcntl, sys, os
+sys.path.insert(0, '/home/ubuntu/catkin_ws/src/GUI/')
+import button
 from keyboard.msg import KeyboardFrame
 from geometry_msgs.msg import Point, Vector3
+import pygame
+from pygame.locals import *
+
+publiser = False
+tool = False
+grab = False
 
 msg = KeyboardFrame()
 msg.hand_available = False
 msg.palm_position = Point()
 msg.ypr = Vector3()
 
-tool = False
+"""
+if  state = 0 no drivers inicialized
+	state = 1 Leap Motion
+	state = 2 Joystick
+	state = 3 Keyboard
+"""
+state = 0
 
-def keypress():
-	global publisher
-	fd = sys.stdin.fileno()
+def driver_state():
+	global state
+	return state
+
+def update_display(screen, Button1, Button2, Button3):
+	 screen.fill((250,250,250))
+	 #Parameters:	surface,color,x,y,length, height, width, text, text_color
+	 Button1.create_button(screen, (145,185,255), 50, 225, 150,75,100,"LeapMotion", (255,255,255))
+	 Button2.create_button(screen, (145,185,255), 245, 225, 150,75,100,"Joystick", (255,255,255))
+	 Button3.create_button(screen, (145,185,255), 450, 225, 150,75,100,"Keyboard", (255,255,255))
+	 pygame.display.flip()
+
+def keypress(screen, clock):
+	global tool,grab, state
+	pygame.init()
+	#screen = pygame.display.set_mode((640, 480))
+	#clock = pygame.time.Clock()
 	
-	oldterm = termios.tcgetattr(fd)
-	newattr = termios.tcgetattr(fd)
-	newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
-	termios.tcsetattr(fd, termios.TCSANOW, newattr)
-
-	oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
-	fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
-
-	try:
-		while 1:
-			try:
-				c = sys.stdin.read(1)
-				talker(c)
-			except IOError:
-				msg.palm_position.y = 0.0
-				msg.palm_position.x = 0.0
-				msg.palm_position.z = 0.0
-				msg.ypr.x = 0
-				msg.ypr.y = 0
-				msg.ypr.z = 0
-				publisher.publish(msg)
-	except KeyboardInterrupt:
-		rospy.signal_shutdown("KeyboardInterrupt")
-	finally:
-		termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
-		fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
-
-def talker(inp):
-	global msg,action, publisher, tool
-	
-	
+	msg.palm_position.y = 160
 	msg.hand_available = True
- 
-	if(inp == "t"):
-		tool = True
-	elif(inp == "r"):
-		tool = False
-	elif(inp == "w"):
-		if tool:
-			msg.ypr.y = 90
-		else:
-			msg.palm_position.y = 250
-	elif(inp == "a"):
-		if tool:
-			msg.ypr.x = -90
-		else:
-			msg.palm_position.x = -90
-	elif(inp == "s"):
-		if tool:
-			msg.ypr.y = -90
-		else:
-			msg.palm_position.y = 50
-	elif(inp == "d"):
-		if tool:
-			msg.ypr.x = 90
-		else:
-			msg.palm_position.x = 90
-	elif(inp == "q"):
-		if tool:
-			msg.ypr.z = -90
-		else:
-			msg.palm_position.z = -80
-	elif(inp == "e"):
-		if tool:
-			msg.ypr.z = 90
-		else:
-			msg.palm_position.z = 80
 	
-	rospy.loginfo(msg)
-	publisher.publish(msg)
+	#rospy.init_node('KeyboardPublisher', anonymous=True)
+	publisher = rospy.Publisher('keyboard/data', KeyboardFrame, queue_size=10)
+	Button1 = button.Button()
+	Button2 = button.Button()
+	Button3 = button.Button()
+	update_display(screen,Button1, Button2, Button3)
 
-if __name__ == '__main__':
+	pygame.key.set_repeat(50,50)
+
+	while True:
+		for event in pygame.event.get():
+			pressed = pygame.key.get_pressed()
+			
+			if event.type == pygame.QUIT:
+				pygame.quit()
+				sys.exit 
+				return
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_w :
+					if tool:
+						msg.ypr.y = 90
+					else:
+						msg.palm_position.y = 250
+				if event.key == pygame.K_a:
+					if tool:
+						msg.ypr.x = -90
+					else:
+						msg.palm_position.x = -90
+				if event.key == pygame.K_s:
+					if tool:
+						msg.ypr.y = -90
+					else:
+						msg.palm_position.y = 50
+				if event.key == pygame.K_d :
+					if tool:
+						msg.ypr.x = 90
+					else:
+						msg.palm_position.x = 90
+				if event.key == pygame.K_q:
+					if tool:
+						msg.ypr.z = -90
+					else:
+						msg.palm_position.z = -90
+				if event.key == pygame.K_e:
+					if tool:
+						msg.ypr.z = 90
+					else:
+						msg.palm_position.z = 80
+				if event.key == pygame.K_r :
+					tool = False
+				if event.key == pygame.K_t:
+					tool = True
+				if event.key == pygame.K_SPACE:
+					grab = not grab
+					msg.grab_action = grab
+			if event.type == pygame.KEYUP:
+				if not pressed[K_w] and not pressed[K_s]:
+					if tool:
+						msg.ypr.y = 0.0
+					else:
+						msg.palm_position.y = 160
+				if not pressed[K_a] and not pressed[K_d]:
+					if tool:
+						msg.ypr.x = 0.0
+					else:
+						msg.palm_position.x = 0.0
+				if not pressed[K_q] and not pressed[K_e]:
+					if tool:
+						msg.ypr.z = 0.0
+					else:
+						msg.palm_position.z = 0.0
+			if event.type == MOUSEBUTTONDOWN:
+				if Button1.pressed(pygame.mouse.get_pos()):
+					update_display(screen, Button1, Button2, Button3)
+					myfont = pygame.font.SysFont("Calibri", 30)
+					label = myfont.render("You are now using Leap Motion", 1, (145,185,255))
+					screen.blit(label, (180, 100))
+					state = 1
+				if Button2.pressed(pygame.mouse.get_pos()):
+					update_display(screen, Button1, Button2, Button3)
+					myfont = pygame.font.SysFont("Calibri", 30)
+					label = myfont.render("You are now using Joystick", 1, (145,185,255))
+					screen.blit(label, (180, 100))
+					state = 2
+				if Button3.pressed(pygame.mouse.get_pos()):
+					update_display(screen, Button1, Button2, Button3)
+					myfont = pygame.font.SysFont("Calibri", 30)
+					label = myfont.render("You are now using Keyboard", 1, (145,185,255))
+					screen.blit(label, (180, 100))
+					state = 3
+				# determine if a letter key was unpressed 
+		pygame.display.flip()
+		publisher.publish(msg)
+		clock.tick(20)
+		#rospy.loginfo(msg)
+		
+		
+if __name__ == "__main__":
 	try:
-		rospy.init_node('KeyboardPublisher', anonymous=True)
-		publisher = rospy.Publisher('keyboard/data', KeyboardFrame, queue_size=10)
 		keypress()
 	except KeyboardInterrupt:
 		rospy.signal_shutdown("KeyboardInterrupt")
-	except rospy.ROSInterruptException:
-		pass
+		raise
+		
