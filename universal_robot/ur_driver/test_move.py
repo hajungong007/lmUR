@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 import time
 import roslib; roslib.load_manifest('ur_driver')
-import rospy
-import actionlib
+import rospys
+import actionlb
 import threading
 import pygame
 import sys
 import os
 sys.path.insert(0, '/home/ubuntu/catkin_ws/src/keyboard/scripts/')
 import keyboard_talker
-
-
+import socket
 
 from pygame.locals import *
 from control_msgs.msg import *
@@ -26,6 +25,8 @@ from ur_driver.io_interface import *
 JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
 		   'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
 
+HOST = '192.168.1.100'
+PORT = 30002
 PI = 3.14159265359
 d1 = 0.017453293 #1 degree in rad
 
@@ -70,11 +71,22 @@ def truncate(f, n):
 #Method which creates a new Goal and send it, making the robot moves in
 # a certain way
 def move(position):
-	g = FollowJointTrajectoryGoal()
-	g.trajectory = JointTrajectory()
-	g.trajectory.joint_names = JOINT_NAMES
-	g.trajectory.points = [JointTrajectoryPoint(positions=position, velocities=[0]*6, time_from_start=rospy.Duration(20.0))]
-	client.send_goal(g)
+	if position == [0,0,0,0,0,0]:
+		command = "stopl(0.5)"
+	else:
+		command = "speedl(%s,0.5,100)"%position
+	print command
+	s.send(command+"\n")
+
+def stop():
+	#time.sleep(0.05)
+	command = "stopl(0.5)"
+	s.send(command+"\n")
+
+def grab_action(grab):
+	string_bool = str(grab)
+	command = "set_digital_out(8,"+string_bool+")"
+	s.send(command+"\n")
 
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
@@ -101,7 +113,8 @@ def callback(data):
 	palmRoll = data.ypr.z
 	hands = data.hand_available
 	grip = data.grab_action
-	#rospy.loginfo(data)
+	#rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palm_position.x,data.palm_position.y,data.palm_position.z))
+
 
 #Regarding the position of the user hands send different movements to
 # the robot, making it moves according to the hand
@@ -112,56 +125,62 @@ def send_movement():
 	if hands:
 		last_move = "move"
 		if palmX > 70:
-			x = -0.1
+			x = 0.000476 * palmX - 0.0333
 		elif palmX < -70:
-			x = 0.1
+			x = 0.000476 * palmX + 0.0333
 		else:
 			x = 0.0
 
 		if palmY > 220:
-			z = 0.1
+			z = 0.001333 * palmY - 0.29
 		elif palmY < 110:
-			z = -0.1
+			z = 0.00125 * palmY - 0.1375
 		else:
 			z = 0
 
 		if palmZ > 50:
-			y = -0.1
+			y = -0.000666 * palmZ + 0.0333
 		elif palmZ < -50:
-			y = 0.1
+			y = -0.000666 * palmZ - 0.0333
 		else:
 			y = 0
 
-		if palmRoll > 50:
-			rx = 0.1
-		elif palmRoll < -50:
-			rx = -0.1
-		else:
-			rx = 0
-
-		if palmPitch > 50:
-			ry = 0.1
-		elif palmPitch < -50:
-			ry = -0.1
+		if palmRoll > 25:
+			ry = palmRoll*0.002
+		elif palmRoll < -25:
+			ry = palmRoll*0.002
 		else:
 			ry = 0
 
-		if palmYaw > 50:
-			rz = 0.1
-		elif palmYaw < -50:
-			rz = -0.1
+		if palmPitch > 25:
+			rx = palmPitch*0.002
+		elif palmPitch < -25:
+			rx = palmPitch*0.002
+		else:
+			rx = 0
+
+		if palmYaw > 25:
+			rz = -palmYaw*0.002
+		elif palmYaw < -25:
+			rz = -palmYaw*0.002
 		else:
 			rz = 0
 
 		move([x,y,z,rx,ry,rz])
 
-	elif last_move != "stop":
-		last_move = "stop"
-		client.cancel_goal()
+	else:
+		stop()
 
-	if grip :
-		gripped = not gripped
-		set_digital_out(8,gripped)
+	if grip and not gripped:
+		stop()
+		#grab_action(True)
+		#time.sleep(2)
+		gripped = True
+	if not grip and gripped:
+		stop()
+		#grab_action(False)
+		#time.sleep(2)
+		gripped = False
 
 def check_input():
 	global lm, jy, kb, last
@@ -201,23 +220,19 @@ def select_hardware():
 
 
 def main():
-	global client,lm,jy,kb
+	global client,lm,jy,kb,s
 	try:
 		rospy.init_node("test_move", anonymous=True, disable_signals=True)
-		client = actionlib.SimpleActionClient('follow_joint_trajectory', FollowJointTrajectoryAction)
-
-		#print "Waiting for server..."
+		host = raw_input("Enter robot IP: ")
+		print "Connecting to %s" % host
 		#client.wait_for_server()
-		#print "Connected to server"
-		#state = rospy.Subscriber("joint_states", JointState, callback_ur)
-		#set_states()
-		#set_tool_voltage(24)
-		"""
-		print "Press 1 if you want to use LeapMotion"
-		print "Press 2 if you want to use a Joystick "
-		print "Press 3 if you want to use a Keyboard "
-		print "You can change the input device whenever you want"
-		"""
+		try:
+			s = socket.create_connection((host, PORT))
+			print "\nConnected to the robot\n"
+		except socket.error as msg:
+			print "Couldn't establish connection with the robot"
+			print msg
+			return
 
 		jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
 		lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback)
@@ -241,14 +256,13 @@ def main():
 		#os.system("rosrun keyboard keyboard_talker.py")
 		while(True):
 			send_movement()
-			time.sleep (0.08) #which is almost 120Hz
+			time.sleep (0.01) #which is almost 120Hz
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					pygame.quit()
 
-
 	except KeyboardInterrupt:
-		client.cancel_goal()
+		s.close
 		rospy.signal_shutdown("KeyboardInterrupt")
 		raise
 
