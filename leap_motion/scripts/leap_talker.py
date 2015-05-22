@@ -3,6 +3,7 @@ import rospy
 import os, sys, inspect
 import Leap
 from leap_motion.msg import LeapFrame
+from geometry_msgs.msg import Point, Vector3
 
 class SampleListener(Leap.Listener):
 
@@ -12,6 +13,7 @@ class SampleListener(Leap.Listener):
         rospy.init_node('LeapPublisher', anonymous = True)
         self.msg = LeapFrame()
         self.msg.hand_available = False
+        self.msg.grab_action = False
         self.msg.palm_position = Point()
         self.msg.ypr = Vector3()
 
@@ -34,6 +36,13 @@ class SampleListener(Leap.Listener):
             self.msg.ypr.x = hand.direction.yaw * Leap.RAD_TO_DEG
             self.msg.ypr.y = hand.direction.pitch * Leap.RAD_TO_DEG
             self.msg.ypr.z = hand.palm_normal.roll * Leap.RAD_TO_DEG
+
+            # Pinching information
+            rospy.loginfo("Pinching Strength: "+str(hand.pinch_strength))
+            if hand.pinch_strength > 0.5:
+                self.msg.grab_action = True
+            else:
+                self.msg.grab_action = False
         else:
             self.msg.hand_available = False
             self.msg.palm_position.x = 0
