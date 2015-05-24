@@ -77,21 +77,31 @@ def truncate(f, n):
 #Method which creates a new Goal and send it, making the robot moves in
 # a certain way
 def move(position):
+	global last_move
 	if position == [0,0,0,0,0,0]:
-		command = "stopl(0.5)"
+		if last_move != "stopl":
+			stop()
 	else:
-		command = "speedl(%s,0.5,100)"%position
-	print command
-	s.send(command+"\n")
+		command = "speedl(%s,0.5,1)"%position
+		last_move = "speedl"
+		print command
+		s.send(command+"\n")
+
+	# print command
 
 def stop():
+	global last_move
 	#time.sleep(0.05)
-	command = "stopl(0.5)"
-	s.send(command+"\n")
+	if last_move != "stopl":
+		command = "stopl(0.5)"
+		s.send(command+"\n")
+		last_move = "stopl"
+
 
 def grab_action(grab):
 	string_bool = str(grab)
 	command = "set_digital_out(8,"+string_bool+")"
+	print command
 	s.send(command+"\n")
 
 #Method that compliment the subscription to a topic, each time that
@@ -124,68 +134,66 @@ def callback(data):
 #Regarding the position of the user hands send different movements to
 # the robot, making it moves according to the hand
 def send_movement():
-	global last_move
 	global J1,J2,J3,J4,J5,J6
 	global grip,gripped
 	if hands:
-		last_move = "move"
 		if palmX > 70:
-			x = 0.000476 * palmX - 0.0333
+			x = float(round(0.000476 * palmX - 0.0333,2))
 		elif palmX < -70:
-			x = 0.000476 * palmX + 0.0333
+			x = float(round(0.000476 * palmX + 0.0333,2))
 		else:
-			x = 0.0
+			x = 0.00
 
 		if palmY > 220:
-			z = 0.001333 * palmY - 0.29
+			z = float(round(0.001333 * palmY - 0.28,2))
 		elif palmY < 110:
-			z = 0.00125 * palmY - 0.1375
+			z = float(round(0.00125 * palmY - 0.15,2))
 		else:
-			z = 0
+			z = 0.00
 
 		if palmZ > 50:
-			y = -0.000666 * palmZ + 0.0333
+			y = float(round(-0.000666 * palmZ + 0.0333,2))
 		elif palmZ < -50:
-			y = -0.000666 * palmZ - 0.0333
+			y = float(round(-0.000666 * palmZ - 0.0333,2))
 		else:
-			y = 0
+			y = 0.00
 
 		if palmRoll > 25:
-			ry = palmRoll*0.002
+			ry = float(round(palmRoll*0.002,2))
 		elif palmRoll < -25:
-			ry = palmRoll*0.002
+			ry = float(round(palmRoll*0.002,2))
 		else:
-			ry = 0
+			ry = 0.00
 
 		if palmPitch > 25:
-			rx = palmPitch*0.002
+			rx = float(round(palmPitch*0.002,2))
 		elif palmPitch < -25:
-			rx = palmPitch*0.002
+			rx = float(round(palmPitch*0.002,2))
 		else:
-			rx = 0
+			rx = 0.00
 
 		if palmYaw > 25:
-			rz = -palmYaw*0.002
+			rz = float(round(-palmYaw*0.002,2))
 		elif palmYaw < -25:
-			rz = -palmYaw*0.002
+			rz = float(round(-palmYaw*0.002,2))
 		else:
-			rz = 0
+			rz = 0.00
 
 		move([x,y,z,rx,ry,rz])
 
 	else:
 		stop()
 
-	if grip and not gripped:
-		stop()
-		#grab_action(True)
-		#time.sleep(2)
-		gripped = True
-	if not grip and gripped:
-		stop()
-		#grab_action(False)
-		#time.sleep(2)
-		gripped = False
+	# if grip and not gripped:
+	# 	stop()
+	# 	grab_action(True)
+	# 	time.sleep(2)
+	# 	gripped = True
+	# if not grip and gripped:
+	# 	stop()
+	# 	grab_action(False)
+	# 	time.sleep(2)
+	# 	gripped = False
 
 def check_input():
 	global lm, jy, kb, last
@@ -234,11 +242,11 @@ def leapMotion_init():
 	os.system("LeapControlPanel")
 
 def init_threads(screen,clock):
-	
+
 	t = threading.Thread(target=leapMotion_init, args = ())
 	t.daemon = True
 	t.start()
-	
+
 	t = threading.Thread(target=select_hardware, args = ())
 	t.daemon = True
 	t.start()
@@ -250,7 +258,7 @@ def init_threads(screen,clock):
 	t = threading.Thread(target=keyboard_talker.keypress, args = (screen, clock))
 	t.daemon = True
 	t.start()
-	
+
 	t = threading.Thread(target=leap_talker.main, args = ())
 	t.daemon = True
 	t.start()
@@ -276,7 +284,7 @@ def main():
 		pygame.init()
 		screen = pygame.display.set_mode((650,370),0,32)
 		clock = pygame.time.Clock()
-		
+
 		counter = 0
 		while counter<60:
 			for event in pygame.event.get():
@@ -300,18 +308,17 @@ def main():
 		jy.unregister()
 		lm.unregister()
 		kb.unregister()
-		
+
 		init_threads(screen,clock)
 
 		while(True):
 			send_movement()
-			time.sleep (0.08) #which is almost 120Hz
+			time.sleep (0.01) #which is almost 120Hz
 			if (keyboard_talker.end):
 				client.cancel_goal()
 				rospy.signal_shutdown("KeyboardInterrupt")
 				keyboard_talker.leapMotion_stop()
 				pygame.quit()
-
 
 	except KeyboardInterrupt:
 		s.close

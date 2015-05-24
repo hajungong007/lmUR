@@ -37,20 +37,20 @@ class SampleListener(Leap.Listener):
 			self.msg.ypr.y = hand.direction.pitch * Leap.RAD_TO_DEG
 			self.msg.ypr.z = hand.palm_normal.roll * Leap.RAD_TO_DEG
 
-			# Pinching information
-			rospy.loginfo("Pinching Strength: "+str(hand.pinch_strength))
-			if hand.pinch_strength > 0.5:
-				self.msg.grab_action = True
-			else:
-				self.msg.grab_action = False
-		else:
-			self.msg.hand_available = False
-			self.msg.palm_position.x = 0
-			self.msg.palm_position.y = 0
-			self.msg.palm_position.z = 0
-			self.msg.ypr.x = 0
-			self.msg.ypr.y = 0
-			self.msg.ypr.z = 0
+            # Pinching information
+            if hand.pinch_strength > 0.6:
+                self.msg.grab_action = True
+            else:
+                self.msg.grab_action = False
+        else:
+            self.msg.hand_available = False
+            self.msg.palm_position.x = 0
+            self.msg.palm_position.y = 0
+            self.msg.palm_position.z = 0
+            self.msg.ypr.x = 0
+            self.msg.ypr.y = 0
+            self.msg.ypr.z = 0
+
 
 		# Publish message to the topic
 		rospy.loginfo(self.msg)
