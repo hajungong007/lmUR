@@ -247,6 +247,8 @@ def init_screen(screen):
 		for event in pygame.event.get():
 			pressed = pygame.key.get_pressed()
 			if event.type == pygame.QUIT:
+				os.system("pkill LeapControlPane")
+				os.system("pkill roscore")
 				leapMotion_stop()
 				rospy.signal_shutdown("KeyboardInterrupt")
 				pygame.quit()

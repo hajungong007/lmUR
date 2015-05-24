@@ -35,7 +35,6 @@ def start_screen(screen,counter):
 	screen.blit(label, (260,270))
 	label = myfont.render("The application will start in: "+str(counter), 1, (105,185,255))
 	screen.blit(label, (240,320))
-	
 	pygame.display.flip()
 	
 def show_error(text,screen):

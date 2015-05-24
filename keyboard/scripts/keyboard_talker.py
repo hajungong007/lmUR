@@ -37,8 +37,7 @@ end = False
 
 def leapMotion_stop():
 	os.system("pkill LeapControlPane")
-	os.system("pkill LeapControlPane")
-	os.system("pkill LeapControlPane")
+	os.system("pkill roscore")
 
 def driver_state():
 	global state

@@ -1,4 +1,9 @@
-import pygame, pygame.font, pygame.event, pygame.draw, string
+import pygame
+import pygame.font
+import pygame.event
+import pygame.draw
+import string
+import os
 from pygame.locals import *
 
 def get_key():
@@ -7,6 +12,8 @@ def get_key():
 		if event.type == KEYDOWN:
 			return event.key
 		elif event.type == pygame.QUIT:
+				os.system("pkill LeapControlPane")
+				os.system("pkill roscore")
 				rospy.signal_shutdown("KeyboardInterrupt")
 				pygame.quit()
 				end = True
