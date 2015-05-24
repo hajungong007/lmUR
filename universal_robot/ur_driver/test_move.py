@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import time
 import roslib; roslib.load_manifest('ur_driver')
-import rospys
-import actionlb
+import rospy
+import actionlib
 import threading
 import pygame
 import sys
