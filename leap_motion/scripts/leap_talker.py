@@ -10,7 +10,7 @@ class SampleListener(Leap.Listener):
 	def on_init(self, controller):
 		print "Leap Motion Controller Initialized"
 		self.publisher = rospy.Publisher('leapmotion/data',LeapFrame, queue_size=10)
-		rospy.init_node('LeapPublisher', anonymous = True)
+		#rospy.init_node('LeapPublisher', anonymous = True)
 		self.msg = LeapFrame()
 		self.msg.hand_available = False
 		self.msg.grab_action = False
@@ -37,19 +37,19 @@ class SampleListener(Leap.Listener):
 			self.msg.ypr.y = hand.direction.pitch * Leap.RAD_TO_DEG
 			self.msg.ypr.z = hand.palm_normal.roll * Leap.RAD_TO_DEG
 
-            # Pinching information
-            if hand.pinch_strength > 0.6:
-                self.msg.grab_action = True
-            else:
-                self.msg.grab_action = False
-        else:
-            self.msg.hand_available = False
-            self.msg.palm_position.x = 0
-            self.msg.palm_position.y = 0
-            self.msg.palm_position.z = 0
-            self.msg.ypr.x = 0
-            self.msg.ypr.y = 0
-            self.msg.ypr.z = 0
+			# Pinching information
+			if hand.pinch_strength > 0.6:
+				self.msg.grab_action = True
+			else:
+				self.msg.grab_action = False
+		else:
+			self.msg.hand_available = False
+			self.msg.palm_position.x = 0
+			self.msg.palm_position.y = 0
+			self.msg.palm_position.z = 0
+			self.msg.ypr.x = 0
+			self.msg.ypr.y = 0
+			self.msg.ypr.z = 0
 
 
 		# Publish message to the topic
