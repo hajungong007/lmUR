@@ -38,8 +38,7 @@ class SampleListener(Leap.Listener):
             self.msg.ypr.z = hand.palm_normal.roll * Leap.RAD_TO_DEG
 
             # Pinching information
-            rospy.loginfo("Pinching Strength: "+str(hand.pinch_strength))
-            if hand.pinch_strength > 0.5:
+            if hand.pinch_strength > 0.6:
                 self.msg.grab_action = True
             else:
                 self.msg.grab_action = False
