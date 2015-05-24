@@ -226,19 +226,32 @@ def check_input():
 		print "[EXCEPTION] Introduce a correct number"
 		return False
 
+def start(screen):
+	counter = 0
+	while counter<60:
+		for event in pygame.event.get():
+			pressed = pygame.key.get_pressed()
+			if event.type == pygame.QUIT:
+				leapMotion_stop()
+				rospy.signal_shutdown("KeyboardInterrupt")
+				pygame.quit()
+				end = True
+		if counter % 20 == 0:
+			display.start_screen(screen,3-counter/20)
+		time.sleep(0.08)
+		counter += 1
+
+
 def select_hardware():
 	while(True):
 		check_input()
 
-def leapMotion_init():
+def init():
 	os.system("LeapControlPanel")
 
+
 def init_threads(screen,clock):
-	
-	t = threading.Thread(target=leapMotion_init, args = ())
-	t.daemon = True
-	t.start()
-	
+
 	t = threading.Thread(target=select_hardware, args = ())
 	t.daemon = True
 	t.start()
@@ -255,63 +268,63 @@ def init_threads(screen,clock):
 	t.daemon = True
 	t.start()
 
+def init_server(screen):
+	connected = False
+	state = 0
 
-def main():
-	global client,lm,jy,kb,s
-	try:
-		rospy.init_node("test_move", anonymous=True, disable_signals=True)
-		host = raw_input("Enter robot IP: ")
-		print "Connecting to %s" % host
-		#client.wait_for_server()
+	while not connected:
+		host = display.server_screen(screen, state)
 		try:
+			state = 1
+			display.server_screen(screen, state)
 			s = socket.create_connection((host, PORT))
-			print "\nConnected to the robot\n"
+			connected = True
 		except socket.error as msg:
 			print "Couldn't establish connection with the robot"
 			print msg
-			return
+			state = 2
+			pass
+			
+def init_subscriber():
+	global lm,jy,kb
+	jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
+	lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback)
+	kb = rospy.Subscriber("keyboard/data", KeyboardFrame, callback)
+	jy.unregister()
+	lm.unregister()
+	kb.unregister()
 
-		client = actionlib.SimpleActionClient('follow_joint_trajectory', FollowJointTrajectoryAction)
-
+def init_move():
+	while(True):
+		send_movement()
+		time.sleep (0.08) #which is almost 120Hz
+		if (keyboard_talker.end):
+			client.cancel_goal()
+			rospy.signal_shutdown("KeyboardInterrupt")
+			keyboard_talker.leapMotion_stop()
+			pygame.quit()
+		
+def main():
+	global client,s
+	try:
+		t = threading.Thread(target=init, args = ())
+		t.daemon = True
+		t.start()
+		
+		os.system("roscore &")
+		
 		pygame.init()
 		screen = pygame.display.set_mode((650,370),0,32)
 		clock = pygame.time.Clock()
 		
-		counter = 0
-		while counter<60:
-			for event in pygame.event.get():
-				pressed = pygame.key.get_pressed()
-				if event.type == pygame.QUIT:
-					leapMotion_stop()
-					rospy.signal_shutdown("KeyboardInterrupt")
-					pygame.quit()
-					end = True
-			if counter % 20 == 0:
-				display.start_screen(screen,3-counter/20)
-			print counter
-			time.sleep(0.1)
-			counter += 1
-
-		display.server_screen(screen)
-
-		jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
-		lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback)
-		kb = rospy.Subscriber("keyboard/data", KeyboardFrame, callback)
-		jy.unregister()
-		lm.unregister()
-		kb.unregister()
-		
+		init_subscriber()
+		start(screen)
+		init_server(screen)
 		init_threads(screen,clock)
 
-		while(True):
-			send_movement()
-			time.sleep (0.08) #which is almost 120Hz
-			if (keyboard_talker.end):
-				client.cancel_goal()
-				rospy.signal_shutdown("KeyboardInterrupt")
-				keyboard_talker.leapMotion_stop()
-				pygame.quit()
+		rospy.init_node("test_move", anonymous=True, disable_signals=True)
 
+		init_move()
 
 	except KeyboardInterrupt:
 		s.close

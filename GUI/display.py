@@ -44,7 +44,7 @@ def show_error(text,screen):
 	screen.blit(label, (130, 100))
 	pygame.display.flip()
 	
-def server_screen(screen):
+def server_screen(screen, state):
 	try:
 		screen.fill((255,255,255))
 		myfont = pygame.font.SysFont("Calibri", 19)
@@ -55,16 +55,22 @@ def server_screen(screen):
 		myfont = pygame.font.SysFont("Calibri", 14)
 		label = myfont.render(" 'numpad' may not work", 1, (145,185,255))
 		screen.blit(label, (220, 200))
+		myfont = pygame.font.SysFont("Calibri", 16)
+		if state == 1:
+			label = myfont.render(" Connecting...", 1, (105,185,255))
+			screen.blit(label, (220, 140))
+			return
+		if state == 2:
+			label = myfont.render(" Couldn.t stablish connection, try again", 1, (105,185,255))
+			screen.blit(label, (160, 140))
+		ip = inputBox.ask(screen, 'Robot IP:')
+		pygame.display.flip()
+		return ip
 	except KeyboardInterrupt:
 		rospy.signal_shutdown("KeyboardInterrupt")
 		pygame.quit()
 		raise
 
-
-	#Parameters:	surface,color,x,y,length, height, width, text, text_color
-	ip = inputBox.ask(screen, 'Robot IP:')
-	pygame.display.flip()
-	return ip
 
 def update_display(screen, Button1, Button2, Button3):
 	screen.fill((255,255,255))

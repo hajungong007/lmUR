@@ -10,7 +10,7 @@ class SampleListener(Leap.Listener):
 	def on_init(self, controller):
 		print "Leap Motion Controller Initialized"
 		self.publisher = rospy.Publisher('leapmotion/data',LeapFrame, queue_size=10)
-		rospy.init_node('LeapPublisher', anonymous = True)
+		#rospy.init_node('LeapPublisher', anonymous = True)
 		self.msg = LeapFrame()
 		self.msg.hand_available = False
 		self.msg.grab_action = False
