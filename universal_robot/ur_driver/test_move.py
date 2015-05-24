@@ -10,6 +10,12 @@ import os
 sys.path.insert(0, '/home/ubuntu/catkin_ws/src/keyboard/scripts/')
 import keyboard_talker
 import socket
+sys.path.insert(0, '/home/ubuntu/catkin_ws/src/joystick/scripts/')
+import joystick_talker
+sys.path.insert(0, '/home/ubuntu/catkin_ws/src/leap_motion/scripts/')
+import leap_talker
+sys.path.insert(0, '/home/ubuntu/catkin_ws/src/GUI/')
+import display
 
 from pygame.locals import *
 from control_msgs.msg import *
@@ -115,7 +121,6 @@ def callback(data):
 	grip = data.grab_action
 	#rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palm_position.x,data.palm_position.y,data.palm_position.z))
 
-
 #Regarding the position of the user hands send different movements to
 # the robot, making it moves according to the hand
 def send_movement():
@@ -189,22 +194,30 @@ def check_input():
 		if(a < 4):
 			if(a == 1):
 				if (last != 1):
+					jy.unregister()
+					kb.unregister()
 					lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback)
 					print "You are now using <LeapMotion>"
 					last = 1
+
 				return True
 
 			elif(a == 2):
 				if (last != 2):
+					lm.unregister()
+					kb.unregister()
 					jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
 					print "You are now using a <Joystick>"
 					last = 2
 				return True
 			elif(a == 3):
 				if (last != 3):
+					jy.unregister()
+					lm.unregister()
 					last = 3
 					kb = rospy.Subscriber("keyboard/data", KeyboardFrame, callback)
 					print "You are now using <Keyboard>"
+
 				return True
 		else:
 			print "[WARN] Number incorrect"
@@ -217,6 +230,30 @@ def select_hardware():
 	while(True):
 		check_input()
 
+def leapMotion_init():
+	os.system("LeapControlPanel")
+
+def init_threads(screen,clock):
+	
+	t = threading.Thread(target=leapMotion_init, args = ())
+	t.daemon = True
+	t.start()
+	
+	t = threading.Thread(target=select_hardware, args = ())
+	t.daemon = True
+	t.start()
+
+	t = threading.Thread(target=joystick_talker.talker, args = ())
+	t.daemon = True
+	t.start()
+
+	t = threading.Thread(target=keyboard_talker.keypress, args = (screen, clock))
+	t.daemon = True
+	t.start()
+	
+	t = threading.Thread(target=leap_talker.main, args = ())
+	t.daemon = True
+	t.start()
 
 
 def main():
@@ -234,36 +271,53 @@ def main():
 			print msg
 			return
 
+		client = actionlib.SimpleActionClient('follow_joint_trajectory', FollowJointTrajectoryAction)
+
+		pygame.init()
+		screen = pygame.display.set_mode((650,370),0,32)
+		clock = pygame.time.Clock()
+		
+		counter = 0
+		while counter<60:
+			for event in pygame.event.get():
+				pressed = pygame.key.get_pressed()
+				if event.type == pygame.QUIT:
+					leapMotion_stop()
+					rospy.signal_shutdown("KeyboardInterrupt")
+					pygame.quit()
+					end = True
+			if counter % 20 == 0:
+				display.start_screen(screen,3-counter/20)
+			print counter
+			time.sleep(0.1)
+			counter += 1
+
+		display.server_screen(screen)
+
 		jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
 		lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback)
 		kb = rospy.Subscriber("keyboard/data", KeyboardFrame, callback)
 		jy.unregister()
 		lm.unregister()
 		kb.unregister()
+		
+		init_threads(screen,clock)
 
-		t = threading.Thread(target=select_hardware, args = ())
-		t.daemon = True
-		t.start()
-
-		pygame.init()
-		screen = pygame.display.set_mode((650,370),0,32)
-		clock = pygame.time.Clock()
-
-		t = threading.Thread(target=keyboard_talker.keypress, args = (screen, clock))
-		t.daemon = True
-		t.start()
-
-		#os.system("rosrun keyboard keyboard_talker.py")
 		while(True):
 			send_movement()
-			time.sleep (0.01) #which is almost 120Hz
-			for event in pygame.event.get():
-				if event.type == pygame.QUIT:
-					pygame.quit()
+			time.sleep (0.08) #which is almost 120Hz
+			if (keyboard_talker.end):
+				client.cancel_goal()
+				rospy.signal_shutdown("KeyboardInterrupt")
+				keyboard_talker.leapMotion_stop()
+				pygame.quit()
+
 
 	except KeyboardInterrupt:
 		s.close
 		rospy.signal_shutdown("KeyboardInterrupt")
+		keyboard_talker.leapMotion_stop()
+		pygame.quit()
 		raise
 
 if __name__ == '__main__': main()

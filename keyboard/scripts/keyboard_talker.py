@@ -3,12 +3,17 @@
 import rospy
 import sys, threading
 import select
-import termios, fcntl, sys, os
+import termios, fcntl, os
+import pygame
+
 sys.path.insert(0, '/home/ubuntu/catkin_ws/src/GUI/')
 import button
+import display
+sys.path.insert(0, '/home/ubuntu/catkin_ws/src/joystick/scripts/')
+import joystick_talker
+
 from keyboard.msg import KeyboardFrame
 from geometry_msgs.msg import Point, Vector3
-import pygame
 from pygame.locals import *
 
 publiser = False
@@ -28,20 +33,20 @@ if  state = 0 no drivers inicialized
 """
 state = 0
 
+end = False
+
+def leapMotion_stop():
+	os.system("pkill LeapControlPane")
+	os.system("pkill LeapControlPane")
+	os.system("pkill LeapControlPane")
+
 def driver_state():
 	global state
 	return state
-
-def update_display(screen, Button1, Button2, Button3):
-	 screen.fill((250,250,250))
-	 #Parameters:	surface,color,x,y,length, height, width, text, text_color
-	 Button1.create_button(screen, (145,185,255), 50, 225, 150,75,100,"LeapMotion", (255,255,255))
-	 Button2.create_button(screen, (145,185,255), 245, 225, 150,75,100,"Joystick", (255,255,255))
-	 Button3.create_button(screen, (145,185,255), 450, 225, 150,75,100,"Keyboard", (255,255,255))
-	 pygame.display.flip()
+	
 
 def keypress(screen, clock):
-	global tool,grab, state
+	global tool,grab, state, end
 	pygame.init()
 	#screen = pygame.display.set_mode((640, 480))
 	#clock = pygame.time.Clock()
@@ -54,18 +59,18 @@ def keypress(screen, clock):
 	Button1 = button.Button()
 	Button2 = button.Button()
 	Button3 = button.Button()
-	update_display(screen,Button1, Button2, Button3)
+	display.update_display(screen,Button1, Button2, Button3)
 
 	pygame.key.set_repeat(50,50)
 
 	while True:
 		for event in pygame.event.get():
 			pressed = pygame.key.get_pressed()
-			
 			if event.type == pygame.QUIT:
+				leapMotion_stop()
+				rospy.signal_shutdown("KeyboardInterrupt")
 				pygame.quit()
-				sys.exit 
-				return
+				end = True
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_w :
 					if tool:
@@ -122,19 +127,23 @@ def keypress(screen, clock):
 						msg.palm_position.z = 0.0
 			if event.type == MOUSEBUTTONDOWN:
 				if Button1.pressed(pygame.mouse.get_pos()):
-					update_display(screen, Button1, Button2, Button3)
+					display.update_display(screen, Button1, Button2, Button3)
 					myfont = pygame.font.SysFont("Calibri", 30)
 					label = myfont.render("You are now using Leap Motion", 1, (145,185,255))
 					screen.blit(label, (180, 100))
 					state = 1
 				if Button2.pressed(pygame.mouse.get_pos()):
-					update_display(screen, Button1, Button2, Button3)
-					myfont = pygame.font.SysFont("Calibri", 30)
-					label = myfont.render("You are now using Joystick", 1, (145,185,255))
-					screen.blit(label, (180, 100))
-					state = 2
+					display.update_display(screen, Button1, Button2, Button3)
+					if(joystick_talker.get_error()):
+						display.show_error("Connect the joystick and press the button again",screen)
+						joystick_talker.check(True)
+					else:
+						myfont = pygame.font.SysFont("Calibri", 30)
+						label = myfont.render("You are now using Joystick", 1, (145,185,255))
+						screen.blit(label, (180, 100))
+						state = 2
 				if Button3.pressed(pygame.mouse.get_pos()):
-					update_display(screen, Button1, Button2, Button3)
+					display.update_display(screen, Button1, Button2, Button3)
 					myfont = pygame.font.SysFont("Calibri", 30)
 					label = myfont.render("You are now using Keyboard", 1, (145,185,255))
 					screen.blit(label, (180, 100))
@@ -142,14 +151,6 @@ def keypress(screen, clock):
 				# determine if a letter key was unpressed 
 		pygame.display.flip()
 		publisher.publish(msg)
-		clock.tick(20)
+		clock.tick(100)
 		#rospy.loginfo(msg)
-		
-		
-if __name__ == "__main__":
-	try:
-		keypress()
-	except KeyboardInterrupt:
-		rospy.signal_shutdown("KeyboardInterrupt")
-		raise
-		
+
