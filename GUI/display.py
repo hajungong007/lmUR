@@ -44,31 +44,27 @@ def show_error(text,screen):
 	pygame.display.flip()
 	
 def server_screen(screen, state):
-	try:
-		screen.fill((255,255,255))
-		myfont = pygame.font.SysFont("Calibri", 19)
-		label = myfont.render("Set the robot IP", 1, (0,0,0))
-		screen.blit(label, (80, 165))
-		label = myfont.render("to start moving it", 1, (0,0,0))
-		screen.blit(label, (80, 185))
-		myfont = pygame.font.SysFont("Calibri", 14)
-		label = myfont.render(" 'numpad' may not work", 1, (145,185,255))
-		screen.blit(label, (220, 200))
-		myfont = pygame.font.SysFont("Calibri", 16)
-		if state == 1:
-			label = myfont.render(" Connecting...", 1, (105,185,255))
-			screen.blit(label, (220, 140))
-			return
-		if state == 2:
-			label = myfont.render(" Couldn.t stablish connection, try again", 1, (105,185,255))
-			screen.blit(label, (160, 140))
-		ip = inputBox.ask(screen, 'Robot IP:')
-		pygame.display.flip()
-		return ip
-	except KeyboardInterrupt:
-		rospy.signal_shutdown("KeyboardInterrupt")
-		pygame.quit()
-		raise
+	
+	screen.fill((255,255,255))
+	myfont = pygame.font.SysFont("Calibri", 19)
+	label = myfont.render("Set the robot IP", 1, (0,0,0))
+	screen.blit(label, (80, 165))
+	label = myfont.render("to start moving it", 1, (0,0,0))
+	screen.blit(label, (80, 185))
+	myfont = pygame.font.SysFont("Calibri", 14)
+	label = myfont.render(" 'numpad' may not work", 1, (145,185,255))
+	screen.blit(label, (220, 200))
+	myfont = pygame.font.SysFont("Calibri", 16)
+	if state == 1:
+		label = myfont.render(" Connecting...", 1, (105,185,255))
+		screen.blit(label, (220, 140))
+		return
+	if state == 2:
+		label = myfont.render(" Couldn.t stablish connection, try again", 1, (105,185,255))
+		screen.blit(label, (160, 140))
+	ip = inputBox.ask(screen, 'Robot IP:')
+	pygame.display.flip()
+	return ip
 
 
 def update_display(screen, Button1, Button2, Button3):

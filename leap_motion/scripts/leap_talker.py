@@ -21,7 +21,6 @@ class SampleListener(Leap.Listener):
 		print "Connected"
 
 	def on_frame(self, controller):
-		print "Frame available"
 		frame = controller.frame()
 		hands = frame.hands
 		if not hands.is_empty:
@@ -53,7 +52,7 @@ class SampleListener(Leap.Listener):
 
 
 		# Publish message to the topic
-		rospy.loginfo(self.msg)
+		# rospy.loginfo(self.msg)
 		self.publisher.publish(self.msg)
 
 	def on_disconnect(self, controller):
@@ -72,6 +71,7 @@ def main():
 	controller.add_listener(listener)
 
 	# Keep this process running until Enter is pressed
+	
 	try:
 		while True:
 			1
@@ -80,3 +80,4 @@ def main():
 	finally:
 		# Remove the sample listener when done
 		controller.remove_listener(listener)
+if __name__ == '__main__': main()

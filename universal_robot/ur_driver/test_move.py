@@ -63,7 +63,7 @@ last = 0
 last_move = "null"
 gripped = False
 client = None
-
+changing = False
 #Method which truncate a number (f). the result will be (f) with only
 # (n) decimal numbers
 def truncate(f, n):
@@ -98,11 +98,16 @@ def stop():
 		last_move = "stopl"
 
 
-def grab_action(grab):
+def grab_action():
+	global changing
+	grab = grip
 	string_bool = str(grab)
 	command = "set_digital_out(8,"+string_bool+")"
 	print command
 	s.send(command+"\n")
+	time.sleep(2)
+	changing = False
+
 
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
@@ -120,7 +125,7 @@ def callback_ur(data):
 #Method that compliment the subscription to a topic, each time that
 # something is published into the topic this callback method is called
 def callback(data):
-	global palmY, palmX, palmZ, palmYaw, palmPitch, palmRoll, hands, grip
+	global palmY, palmX, palmZ, palmYaw, palmPitch, palmRoll, hands, grip, changing
 	palmX = data.palm_position.x
 	palmY = data.palm_position.y
 	palmZ = data.palm_position.z
@@ -128,14 +133,15 @@ def callback(data):
 	palmPitch = data.ypr.y
 	palmRoll = data.ypr.z
 	hands = data.hand_available
-	grip = data.grab_action
-	#rospy.loginfo("Leap ROS Data \nx: %s\ny: %s\nz: %s" % (data.palm_position.x,data.palm_position.y,data.palm_position.z))
+	if not changing:
+		grip = data.grab_action
+	#rospy.loginfo("\nx: %s\ny: %s\nz: %s" % (data.palm_position.x,data.palm_position.y,data.palm_position.z))
 
 #Regarding the position of the user hands send different movements to
 # the robot, making it moves according to the hand
 def send_movement():
 	global J1,J2,J3,J4,J5,J6
-	global grip,gripped
+	global grip,gripped,changing
 	if hands:
 		if palmX > 70:
 			x = float(round(0.000476 * palmX - 0.0333,2))
@@ -181,19 +187,28 @@ def send_movement():
 
 		move([x,y,z,rx,ry,rz])
 
+		if grip and not gripped:
+			if not changing:
+				changing = True
+				t = threading.Thread(target=grab_action)
+				t.start()
+			gripped = True
+		if not grip and gripped:
+			if not changing:
+				changing = True
+				t = threading.Thread(target=grab_action)
+				t.start()
+			gripped = False
 	else:
 		stop()
 
-	# if grip and not gripped:
-	# 	stop()
-	# 	grab_action(True)
-	# 	time.sleep(2)
-	# 	gripped = True
-	# if not grip and gripped:
-	# 	stop()
-	# 	grab_action(False)
-	# 	time.sleep(2)
-	# 	gripped = False
+
+
+def grip_thread():
+	gripped = True
+
+	t.join()
+	gripped = False
 
 def check_input():
 	global lm, jy, kb, last
@@ -201,31 +216,31 @@ def check_input():
 		a = keyboard_talker.driver_state()
 		if(a < 4):
 			if(a == 1):
+				jy.unregister()
+				kb.unregister()
 				if (last != 1):
-					jy.unregister()
-					kb.unregister()
+					print last
 					lm = rospy.Subscriber("leapmotion/data", LeapFrame, callback)
 					print "You are now using <LeapMotion>"
 					last = 1
-
 				return True
-
 			elif(a == 2):
+				lm.unregister()
+				kb.unregister()
 				if (last != 2):
-					lm.unregister()
-					kb.unregister()
+					print last
 					jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
 					print "You are now using a <Joystick>"
 					last = 2
 				return True
 			elif(a == 3):
+				jy.unregister()
+				lm.unregister()
 				if (last != 3):
-					jy.unregister()
-					lm.unregister()
+					print last
 					last = 3
 					kb = rospy.Subscriber("keyboard/data", KeyboardFrame, callback)
 					print "You are now using <Keyboard>"
-
 				return True
 		else:
 			print "[WARN] Number incorrect"
@@ -286,7 +301,8 @@ def init_server(screen):
 		try:
 			state = 1
 			display.server_screen(screen, state)
-			s = socket.create_connection((host, PORT))
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((host, PORT))
 			connected = True
 		except socket.error as msg:
 			print "Couldn't establish connection with the robot"
@@ -303,10 +319,23 @@ def init_subscriber():
 	lm.unregister()
 	kb.unregister()
 
+creating = False
+
+def socket_clean():
+	global creating,s
+	while True:
+		time.sleep(30)
+		creating = True
+		s.close()
+		s = socket.create_connection(("192.168.0.101", PORT))
+		creating = False
+
 def init_move():
+	global creating
 	while(True):
-		send_movement()
-		time.sleep (0.08) #which is almost 120Hz
+		if not creating:
+			send_movement()
+			time.sleep (0.08) #which is almost 120Hz
 		if (keyboard_talker.end):
 			client.cancel_goal()
 			rospy.signal_shutdown("KeyboardInterrupt")
@@ -323,16 +352,14 @@ def main():
 		clock = pygame.time.Clock()
 
 		init_subscriber()
-		init_screen(screen)
-
-		rospy.init_node("test_move", anonymous=True, disable_signals=True)
-
+		#init_screen(screen)
 		init_server(screen)
+		rospy.init_node("test_move", anonymous=True, disable_signals=True)
 		init_threads(screen,clock)
-
-
+		t = threading.Thread(target=socket_clean)
+		t.daemon = True
+		t.start()
 		init_move()
-
 	except KeyboardInterrupt:
 		s.close
 		rospy.signal_shutdown("KeyboardInterrupt")

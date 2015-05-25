@@ -43,12 +43,6 @@ def ask(screen, question):
 	current_string = []
 	display_box(screen, question + ": " + string.join(current_string,""))
 	while 1:
-		for event in pygame.event.get():
-			pressed = pygame.key.get_pressed()
-			if event.type == pygame.QUIT:
-				rospy.signal_shutdown("KeyboardInterrupt")
-				pygame.quit()
-				end = True
 		inkey = get_key()
 		if inkey == K_BACKSPACE:
 			current_string = current_string[0:-1]
