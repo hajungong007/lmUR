@@ -277,6 +277,7 @@ def init_threads(screen,clock):
 	t.start()
 
 def init_server(screen):
+	global s
 	connected = False
 	state = 0
 
@@ -292,7 +293,7 @@ def init_server(screen):
 			print msg
 			state = 2
 			pass
-			
+
 def init_subscriber():
 	global lm,jy,kb
 	jy = rospy.Subscriber("joystick/data",JoystickFrame, callback)
@@ -311,22 +312,24 @@ def init_move():
 			rospy.signal_shutdown("KeyboardInterrupt")
 			keyboard_talker.leapMotion_stop()
 			pygame.quit()
-		
+
 def main():
 	global client,s
 	try:
 		os.system("roscore &")
-		
+
 		pygame.init()
 		screen = pygame.display.set_mode((650,370),0,32)
 		clock = pygame.time.Clock()
 
 		init_subscriber()
 		init_screen(screen)
+
+		rospy.init_node("test_move", anonymous=True, disable_signals=True)
+
 		init_server(screen)
 		init_threads(screen,clock)
 
-		rospy.init_node("test_move", anonymous=True, disable_signals=True)
 
 		init_move()
 
