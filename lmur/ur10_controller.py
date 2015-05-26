@@ -356,7 +356,7 @@ def main():
 		clock = pygame.time.Clock()
 
 		init_subscriber()
-		#init_screen(screen)
+		init_screen(screen)
 		init_server(screen)
 		rospy.init_node("test_move", anonymous=True, disable_signals=True)
 		init_threads(screen,clock)
