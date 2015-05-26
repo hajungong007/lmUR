@@ -8,6 +8,7 @@ sys.path.insert(0, '/home/ubuntu/catkin_ws/src/GUI/')
 import inputBox
 from pygame.locals import *
 
+connected = False
 
 def start_screen(screen,counter):
 	screen.fill((255,255,255))
@@ -37,14 +38,7 @@ def start_screen(screen,counter):
 	screen.blit(label, (240,320))
 	pygame.display.flip()
 	
-def show_error(text,screen):
-	myfont = pygame.font.SysFont("Calibri", 30)
-	label = myfont.render(text, 1, (145,185,255))
-	screen.blit(label, (130, 100))
-	pygame.display.flip()
-	
 def server_screen(screen, state):
-	
 	screen.fill((255,255,255))
 	myfont = pygame.font.SysFont("Calibri", 19)
 	label = myfont.render("Set the robot IP", 1, (0,0,0))
@@ -56,8 +50,10 @@ def server_screen(screen, state):
 	screen.blit(label, (220, 200))
 	myfont = pygame.font.SysFont("Calibri", 16)
 	if state == 1:
-		label = myfont.render(" Connecting...", 1, (105,185,255))
-		screen.blit(label, (220, 140))
+		myfont = pygame.font.SysFont("Calibri", 25)
+		label = myfont.render(" Connecting...", 1, (145,185,255))
+		screen.blit(label, (210, 170))
+		pygame.display.flip()
 		return
 	if state == 2:
 		label = myfont.render(" Couldn.t stablish connection, try again", 1, (105,185,255))
@@ -66,12 +62,51 @@ def server_screen(screen, state):
 	pygame.display.flip()
 	return ip
 
+def trying_to_connect(screen):
+	global connected
+	myfont = pygame.font.SysFont("Calibri", 15)
+	while not connected:
+		label = myfont.render("connecting.", 1, (150,150,150))
+		screen.blit(label, (250, 150))
+		time.sleep(0.5)
+		label = myfont.render("connecting..", 1, (150,150,150))
+		screen.blit(label, (250, 150))
+		time.sleep(0.5)
+		label = myfont.render("connecting...", 1, (150,150,150))
+		screen.blit(label, (250, 150))
+		time.sleep(0.5)
 
-def update_display(screen, Button1, Button2, Button3):
+def update_display(screen, Button1, Button2, Button3, Button4, Button5, mode, button):
+	global connected
+	connected = True
 	screen.fill((255,255,255))
 	pygame.display.set_caption('leap motion - Universal robot (lmur)')
 	#Parameters:	surface,color,x,y,length, height, width, text, text_color
 	Button1.create_button(screen, (145,185,255), 50, 225, 150,75,100,"LeapMotion", (255,255,255))
 	Button2.create_button(screen, (145,185,255), 245, 225, 150,75,100,"Joystick", (255,255,255))
 	Button3.create_button(screen, (145,185,255), 450, 225, 150,75,100,"Keyboard", (255,255,255))
+	Button4.create_button(screen, (185,185,255), 80, 50, 225,75,100," TOOL mode", (255,255,255))
+	Button5.create_button(screen, (185,185,255), 330, 50, 225,75,100,"JOINT mode", (255,255,255))
+	myfont = pygame.font.SysFont("Calibri", 15)
+	if mode == 1:
+		label = myfont.render("TOOL mode", 1, (150,150,150))
+		screen.blit(label, (500, 15))
+	elif mode == 2:
+		label = myfont.render("JOINT mode", 1, (150,150,150))
+		screen.blit(label, (500, 15))
+	if button != 0:
+		myfont = pygame.font.SysFont("Calibri", 30)
+		if button == 1:
+			label = myfont.render("You are now using Leap Motion", 1, (150,150,150))
+			screen.blit(label, (180, 165))
+		if button == 2:
+			label = myfont.render("You are now using Joystick", 1, (150,150,150))
+			screen.blit(label, (180, 165))
+		if button == 3:
+			label = myfont.render("You are now using Keyboard", 1, (150,150,150))
+			screen.blit(label, (180, 165))
+		if button == -1:
+			label = myfont.render("Connect the joystick and press the button again", 1, (150,150,150))
+			screen.blit(label, (110, 165))
+			
 	pygame.display.flip()

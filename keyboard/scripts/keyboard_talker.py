@@ -32,7 +32,8 @@ if  state = 0 no drivers inicialized
 	state = 3 Keyboard
 """
 state = 0
-
+mode = 1
+but = 0
 end = False
 
 def leapMotion_stop():
@@ -42,10 +43,13 @@ def leapMotion_stop():
 def driver_state():
 	global state
 	return state
-	
+
+def mode_state():
+	global mode
+	return mode
 
 def keypress(screen, clock):
-	global tool,grab, state, end
+	global tool,grab, state, end, mode, but
 	pygame.init()
 	#screen = pygame.display.set_mode((640, 480))
 	#clock = pygame.time.Clock()
@@ -58,7 +62,9 @@ def keypress(screen, clock):
 	Button1 = button.Button()
 	Button2 = button.Button()
 	Button3 = button.Button()
-	display.update_display(screen,Button1, Button2, Button3)
+	Button4 = button.Button()
+	Button5 = button.Button()
+	display.update_display(screen,Button1, Button2, Button3, Button4, Button5, mode, button)
 
 	pygame.key.set_repeat(50,50)
 
@@ -126,29 +132,29 @@ def keypress(screen, clock):
 						msg.palm_position.z = 0.0
 			if event.type == MOUSEBUTTONDOWN:
 				if Button1.pressed(pygame.mouse.get_pos()):
-					display.update_display(screen, Button1, Button2, Button3)
-					myfont = pygame.font.SysFont("Calibri", 30)
-					label = myfont.render("You are now using Leap Motion", 1, (145,185,255))
-					screen.blit(label, (180, 100))
+					but = 1
+					display.update_display(screen,Button1, Button2, Button3, Button4, Button5, mode, but)
 					state = 1
 				if Button2.pressed(pygame.mouse.get_pos()):
-					display.update_display(screen, Button1, Button2, Button3)
 					if(joystick_talker.get_error()):
-						display.show_error("Connect the joystick and press the button again",screen)
+						but = -1
+						display.update_display(screen,Button1, Button2, Button3, Button4, Button5,mode, but)
 						joystick_talker.check(True)
 					else:
-						myfont = pygame.font.SysFont("Calibri", 30)
-						label = myfont.render("You are now using Joystick", 1, (145,185,255))
-						screen.blit(label, (180, 100))
+						but = 2
+						display.update_display(screen,Button1, Button2, Button3, Button4, Button5,mode, but)
 						state = 2
 				if Button3.pressed(pygame.mouse.get_pos()):
-					display.update_display(screen, Button1, Button2, Button3)
-					myfont = pygame.font.SysFont("Calibri", 30)
-					label = myfont.render("You are now using Keyboard", 1, (145,185,255))
-					screen.blit(label, (180, 100))
+					but = 3
+					display.update_display(screen,Button1, Button2, Button3, Button4, Button5,mode, but)
 					state = 3
-				# determine if a letter key was unpressed 
-		pygame.display.flip()
+				if Button4.pressed(pygame.mouse.get_pos()):
+					mode = 1
+					display.update_display(screen,Button1, Button2, Button3, Button4, Button5,mode, but)
+				if Button5.pressed(pygame.mouse.get_pos()):
+					mode = 2
+					display.update_display(screen,Button1, Button2, Button3, Button4, Button5,mode, but)
+
 		publisher.publish(msg)
 		clock.tick(100)
 		#rospy.loginfo(msg)

@@ -61,6 +61,7 @@ lm = 0
 jy = 0
 kb = 0
 last = 0
+host = 0
 
 #last move sended to the robot
 last_move = "null"
@@ -102,7 +103,6 @@ def stop():
 		command = "stopl(0.5)"
 		s.send(command+"\n")
 		last_move = "stopl"
-
 
 def grab_action():
 	global changing
@@ -190,7 +190,9 @@ def send_movement():
 			rz = float(round(-palmYaw*0.002,2))
 		else:
 			rz = 0.00
-
+		
+		mode = keyboard_talker.mode_state()
+		
 		if mode == MODE_TOOL:
 			move_tool([x,y,z,rx,ry,rz])
 		elif mode == MODE_JOINTS:
@@ -210,14 +212,6 @@ def send_movement():
 			gripped = False
 	else:
 		stop()
-
-
-
-def grip_thread():
-	gripped = True
-
-	t.join()
-	gripped = False
 
 def check_input():
 	global lm, jy, kb, last
@@ -300,16 +294,17 @@ def init_threads(screen,clock):
 	t.daemon = True
 	t.start()
 
+def info_connection(screen):
+	display.trying_to_connect(screen)
+
 def init_server(screen):
-	global s
+	global s,host
 	connected = False
 	state = 0
-
 	while not connected:
 		host = display.server_screen(screen, state)
 		try:
-			state = 1
-			display.server_screen(screen, state)
+			display.server_screen(screen, 1)
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect((host, PORT))
 			connected = True
@@ -331,12 +326,12 @@ def init_subscriber():
 creating = False
 
 def socket_clean():
-	global creating,s
+	global creating,s,host
 	while True:
 		time.sleep(30)
 		creating = True
 		s.close()
-		s = socket.create_connection(("192.168.0.101", PORT))
+		s = socket.create_connection((host, PORT))
 		creating = False
 
 def init_move():
