@@ -31,6 +31,9 @@ from ur_driver.io_interface import *
 JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
 		   'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
 
+MODE_TOOL = 1
+MODE_JOINTS = 2
+
 HOST = '192.168.1.100'
 PORT = 30002
 PI = 3.14159265359
@@ -64,19 +67,10 @@ last_move = "null"
 gripped = False
 client = None
 changing = False
-#Method which truncate a number (f). the result will be (f) with only
-# (n) decimal numbers
-def truncate(f, n):
-	'''Truncates/pads a float f to n decimal places without rounding'''
-	s = '{}'.format(f)
-	if 'e' in s or 'E' in s:
-		return '{0:.{1}f}'.format(f, n)
-	i, p, d = s.partition('.')
-	return '.'.join([i, (d+'0'*n)[:n]])
+mode = MODE_JOINTS
 
-#Method which creates a new Goal and send it, making the robot moves in
-# a certain way
-def move(position):
+#Method to send the command to move the tool
+def move_tool(position):
 	global last_move
 	if position == [0,0,0,0,0,0]:
 		if last_move != "stopl":
@@ -88,6 +82,18 @@ def move(position):
 		s.send(command+"\n")
 
 	# print command
+
+#Method to send the command to move the joints
+def move_joints(position):
+	global last_move
+	if position == [0,0,0,0,0,0]:
+		if last_move != "stopl":
+			stop()
+	else:
+		command = "speedj(%s,0.5,1)"%position
+		last_move = "speedj"
+		print command
+		s.send(command+"\n")
 
 def stop():
 	global last_move
@@ -185,7 +191,10 @@ def send_movement():
 		else:
 			rz = 0.00
 
-		move([x,y,z,rx,ry,rz])
+		if mode == MODE_TOOL:
+			move_tool([x,y,z,rx,ry,rz])
+		elif mode == MODE_JOINTS:
+			move_joints([rz,rx,ry,0,0,0])
 
 		if grip and not gripped:
 			if not changing:
